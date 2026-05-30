@@ -1,0 +1,2551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CineSearch</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#e50914"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="CineSearch"/>
+  <link rel="apple-touch-icon" href="icon-192.png"/>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── REMOVE BLUE TAP HIGHLIGHT — ALL CLICKABLE ELEMENTS ── */
+    *,
+    *::before,
+    *::after {
+      -webkit-tap-highlight-color: transparent;
+      tap-highlight-color: transparent;
+    }
+    button,
+    a,
+    [onclick],
+    .nf-card,
+    .nf-card-inner,
+    .nf-play-btn,
+    .nf-info-btn,
+    .nf-mylist-btn,
+    .search-card,
+    .similar-card,
+    .cw-card,
+    .cw-remove-btn,
+    .hero-btn,
+    .hero-btn-play,
+    .hero-btn-info,
+    .btn-trailer,
+    .btn-watch,
+    .btn-mylist,
+    .m-close,
+    .nav-link,
+    .nav-logo,
+    .search-toggle-btn,
+    .search-clear-btn,
+    .genre-pill,
+    .wtw-item,
+    .yt-fallback-btn,
+    .cw-clear {
+      -webkit-tap-highlight-color: transparent;
+      tap-highlight-color: transparent;
+      outline: none;
+    }
+    button:focus,
+    a:focus,
+    [onclick]:focus {
+      outline: none;
+    }
+
+    :root {
+      --bg: #141414;
+      --surface: #181818;
+      --card: #2f2f2f;
+      --red: #e50914;
+      --red-hover: #f40612;
+      --text: #ffffff;
+      --text-dim: #a3a3a3;
+      --text-faint: #555;
+      --border: rgba(255,255,255,0.1);
+    }
+
+    html, body { height: 100%; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+      min-height: 100vh; overflow-x: hidden;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 300;
+      height: 68px; padding: 0 4%;
+      display: flex; align-items: center; justify-content: space-between; gap: 24px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%);
+      transition: background 0.3s;
+    }
+    nav.solid { background: #141414; }
+
+    .nav-left { display: flex; align-items: center; gap: 28px; }
+    .nav-logo {
+      font-size: 28px; font-weight: 800; letter-spacing: -0.03em;
+      color: var(--red); text-decoration: none; flex-shrink: 0;
+    }
+    .nav-links { display: flex; gap: 20px; }
+    .nav-link {
+      font-size: 13px; font-weight: 500; color: var(--text-dim);
+      cursor: pointer; text-decoration: none; transition: color 0.2s;
+      background: none; border: none; font-family: inherit;
+    }
+    .nav-link:hover, .nav-link.active { color: #fff; }
+
+    /* NAV SEARCH ICON */
+    .search-toggle-btn {
+      background: none; border: none; cursor: pointer;
+      color: #fff; font-size: 20px; padding: 8px 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: opacity 0.2s;
+    }
+    .search-toggle-btn:hover { opacity: 0.7; }
+
+    /* SEARCH DROPDOWN BAR — hidden by default, slides down on open */
+    .search-dropdown {
+      position: fixed; top: 60px; left: 0; right: 0; z-index: 299;
+      background: rgba(8,8,8,0.98);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(229,9,20,0.25);
+      display: none;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .search-dropdown.open {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .search-dropdown-inner {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px;
+      border-bottom: none;
+    }
+    .search-icon-inner {
+      color: var(--red); flex-shrink: 0; opacity: 0.8;
+    }
+    .search-dropdown-inner input {
+      flex: 1; background: transparent; border: none; outline: none;
+      color: #fff; font-family: inherit; font-size: 15px; font-weight: 400;
+      letter-spacing: 0.01em;
+    }
+    .search-dropdown-inner input::placeholder { color: rgba(255,255,255,0.25); font-weight: 300; }
+    .search-clear-btn {
+      background: none; border: none; cursor: pointer;
+      color: rgba(255,255,255,0.4); font-size: 14px; padding: 4px;
+      display: none; flex-shrink: 0; line-height: 1;
+      transition: color 0.15s;
+      width: 24px; height: 24px; border-radius: 50%;
+      display: none; align-items: center; justify-content: center;
+    }
+    .search-clear-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .search-clear-btn.visible { display: flex; }
+
+    /* ── HERO BANNER ── */
+    .hero-banner {
+      position: relative; width: 100%;
+      height: 85vh; min-height: 480px;
+      overflow: hidden;
+      display: flex; align-items: flex-end;
+      flex-shrink: 0; /* prevent flex-column from squishing the hero */
+    }
+    .hero-bg {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center top;
+    }
+    .hero-bg::after {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        linear-gradient(to right, rgba(20,20,20,0.95) 0%, rgba(20,20,20,0.5) 50%, transparent 100%),
+        linear-gradient(to top, rgba(20,20,20,1) 0%, rgba(20,20,20,0.3) 50%, transparent 100%);
+    }
+    .hero-content {
+      position: relative; z-index: 2;
+      width: 100%; max-width: 480px;
+      padding: 0 4% 48px;
+      animation: heroFadeIn 1s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    @keyframes heroFadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--red); color: #fff;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 2px; margin-bottom: 16px;
+    }
+    .hero-title {
+      font-size: clamp(28px, 4vw, 52px); font-weight: 800;
+      line-height: 1.05; letter-spacing: -0.02em;
+      margin-bottom: 16px; text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+    }
+    .hero-meta {
+      display: flex; align-items: center; gap: 14px;
+      font-size: 13px; color: var(--text-dim); margin-bottom: 20px;
+    }
+    .hero-rating { color: #46d369; font-weight: 700; }
+    .hero-overview {
+      font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.75);
+      margin-bottom: 24px;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .hero-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    .hero-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 24px; border-radius: 4px; border: none;
+      font-family: inherit; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s; text-decoration: none;
+    }
+    .hero-btn-play {
+      background: #fff; color: #000;
+    }
+    .hero-btn-play:hover { background: rgba(255,255,255,0.8); }
+    .hero-btn-info {
+      background: rgba(109,109,110,0.7); color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .hero-btn-info:hover { background: rgba(109,109,110,0.5); }
+
+    /* ═══════════════════════════════════════════════
+       CINEMATIC HERO ENHANCEMENTS — CSS ONLY ADDITIONS
+       All rules target existing classes/IDs only.
+       No layout or functionality is changed.
+    ═══════════════════════════════════════════════ */
+
+    /* 1. MOVING POSTER — ken-burns zoom + horizontal pan */
+    @keyframes heroCinematic {
+      0%   { transform: scale(1)    translateX(0px); }
+      25%  { transform: scale(1.04) translateX(-12px); }
+      50%  { transform: scale(1.08) translateX(0px); }
+      75%  { transform: scale(1.06) translateX(10px); }
+      100% { transform: scale(1)    translateX(0px); }
+    }
+
+    /* Apply animation to the hero background div */
+    .hero-bg {
+      will-change: transform;
+      transform-origin: center center;
+      animation: heroCinematic 22s ease-in-out infinite;
+      /* GPU composite layer — prevents repaints, smooth on mobile */
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    /* 2. ENHANCED GRADIENT OVERLAY — richer left-side dark for text */
+    .hero-bg::after {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        /* Strong left dark band for text readability */
+        linear-gradient(105deg, rgba(14,14,14,0.98) 0%, rgba(14,14,14,0.82) 30%, rgba(14,14,14,0.4) 55%, transparent 80%),
+        /* Bottom fade into app section */
+        linear-gradient(to top, rgba(20,20,20,1) 0%, rgba(20,20,20,0.55) 35%, transparent 70%),
+        /* Subtle top vignette under nav */
+        linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 18%);
+      pointer-events: none; /* Never blocks clicks */
+    }
+
+    /* 3. HERO CONTENT FADE-IN — staggered children, no layout shift
+       (.hero-content itself already uses heroFadeIn from base CSS — no override needed) */
+
+    /* Stagger badge, title, meta, overview, buttons */
+    .hero-badge {
+      opacity: 0;
+      animation: heroCinematic-item 0.7s ease 0.4s forwards;
+    }
+    .hero-title {
+      opacity: 0;
+      animation: heroCinematic-item 0.7s ease 0.55s forwards;
+    }
+    .hero-meta {
+      opacity: 0;
+      animation: heroCinematic-item 0.7s ease 0.68s forwards;
+    }
+    .hero-overview {
+      opacity: 0;
+      animation: heroCinematic-item 0.7s ease 0.78s forwards;
+    }
+    .hero-btns {
+      opacity: 0;
+      animation: heroCinematic-item 0.7s ease 0.9s forwards;
+    }
+    @keyframes heroCinematic-item {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 4. DESKTOP HOVER — buttons scale + brighten; poster extra zoom */
+    @media (hover: hover) and (pointer: fine) {
+      .hero-btn {
+        transition: transform 0.2s ease, filter 0.2s ease, background 0.15s;
+      }
+      .hero-btn-play:hover {
+        transform: scale(1.045);
+        filter: brightness(1.08);
+        background: rgba(255,255,255,0.92);
+      }
+      .hero-btn-info:hover {
+        transform: scale(1.045);
+        filter: brightness(1.15);
+        background: rgba(109,109,110,0.6);
+      }
+      /* Subtle extra zoom on desktop hover over hero area */
+      .hero-banner:hover .hero-bg {
+        animation-play-state: paused;
+        transform: scale(1.065) translateX(-6px);
+        transition: transform 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+    }
+
+    /* 5. PERFORMANCE — reduce motion for users who prefer it */
+    @media (prefers-reduced-motion: reduce) {
+      .hero-bg {
+        animation: none !important;
+        transform: scale(1.04) !important;
+      }
+      .hero-content,
+      .hero-badge,
+      .hero-title,
+      .hero-meta,
+      .hero-overview,
+      .hero-btns {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+
+    /* 6. MOBILE — lighter animation, no hover state lag */
+    @media (max-width: 768px) {
+      @keyframes heroCinematic {
+        0%   { transform: scale(1)    translateX(0px); }
+        50%  { transform: scale(1.05) translateX(-8px); }
+        100% { transform: scale(1)    translateX(0px); }
+      }
+      .hero-bg {
+        animation-duration: 18s; /* slightly faster feels snappier on mobile */
+      }
+    }
+
+    /* ── ROWS ── */
+    #app {
+      position: relative; z-index: 1;
+      padding: 0 0 80px;
+      margin-top: -40px; /* less overlap so hero buttons aren't hidden */
+      flex: 1 0 auto; /* grow to fill remaining viewport height */
+    }
+
+    /* Tab view: no hero above, so reset negative margin and add nav clearance */
+    #app.tab-view {
+      margin-top: 0;
+      padding-top: 88px; /* nav height (68px) + breathing room */
+    }
+
+    .row-section { margin-bottom: 40px; padding: 0 4%; }
+    .row-label {
+      font-size: 18px; font-weight: 700; letter-spacing: -0.01em;
+      margin-bottom: 12px; color: #e5e5e5;
+    }
+    .row-label em { color: var(--red); font-style: normal; }
+
+    /* horizontal scroll row wrapper — clips scroll but NOT the hover expansion */
+    .row-section { position: relative; }
+    .movie-row-outer {
+      overflow-x: auto;
+      overflow-y: visible;
+      scrollbar-width: none;
+      padding: 40px 0 20px; /* vertical breathing room for scale */
+      margin: -40px 0 -20px; /* cancel out so layout unchanged */
+    }
+    .movie-row-outer::-webkit-scrollbar { display: none; }
+
+    .movie-row {
+      display: flex; gap: 6px;
+      width: max-content;
+      padding: 0 2px; /* prevent edge clip */
+    }
+
+    /* ── NETFLIX CARD ── */
+    .nf-card {
+      flex-shrink: 0;
+      width: 130px;
+      cursor: pointer;
+      position: relative;
+      z-index: 1;
+      transition:
+        transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s,
+        z-index 0s 0.3s,
+        box-shadow 0.3s ease 0.3s;
+    }
+    .nf-card:hover {
+      transform: scale(1.38) translateY(-6%);
+      z-index: 100;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+      /* on hover: no delay */
+      transition:
+        transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s,
+        z-index 0s 0.3s,
+        box-shadow 0.3s ease 0.3s;
+    }
+
+    .nf-card-inner {
+      border-radius: 4px; overflow: hidden;
+      background: var(--card);
+    }
+    .nf-poster {
+      width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block;
+      background: #222;
+      transition: filter 0.3s ease 0.3s;
+    }
+    .nf-card:hover .nf-poster { filter: brightness(0.6); }
+
+    .nf-poster-fallback {
+      width: 100%; aspect-ratio: 2/3;
+      display: flex; align-items: center; justify-content: center;
+      background: #1a1a1a; font-size: 32px;
+    }
+
+    /* card info shown on hover — slides up from bottom */
+    .nf-card-info {
+      background: #181818;
+      padding: 0 12px;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition:
+        max-height 0.3s ease 0.3s,
+        opacity 0.2s ease 0.35s,
+        padding 0s ease 0.5s;
+    }
+    .nf-card:hover .nf-card-info {
+      max-height: 120px;
+      opacity: 1;
+      padding: 10px 12px 14px;
+    }
+    .nf-card-title {
+      font-size: 12px; font-weight: 700; line-height: 1.3;
+      margin-bottom: 6px; color: #fff;
+    }
+    .nf-card-row1 {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .nf-play-btn {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #fff; color: #000;
+      border: none; cursor: pointer; font-size: 12px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s; flex-shrink: 0;
+    }
+    .nf-play-btn:hover { background: rgba(255,255,255,0.8); }
+    .nf-info-btn {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: transparent; color: #fff;
+      border: 2px solid rgba(255,255,255,0.5); cursor: pointer; font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s; flex-shrink: 0;
+    }
+    .nf-info-btn:hover { border-color: #fff; }
+    .nf-rating { font-size: 11px; color: #46d369; font-weight: 700; margin-left: auto; }
+    .nf-tags {
+      display: flex; flex-wrap: wrap; gap: 4px;
+    }
+    .nf-tag {
+      font-size: 9px; color: var(--text-dim); font-weight: 500;
+    }
+    .nf-tag:not(:last-child)::after { content: ' •'; margin-left: 4px; }
+
+    /* ── GENRE PILLS ── */
+    .genre-bar {
+      display: flex; gap: 8px; flex-wrap: nowrap;
+      overflow-x: auto; scrollbar-width: none;
+      padding: 0 4%; margin-bottom: 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .genre-bar::-webkit-scrollbar { display: none; }
+    .g-filter {
+      font-size: 12px; font-weight: 500;
+      color: var(--text-dim); border: 1px solid rgba(255,255,255,0.2);
+      padding: 5px 16px; border-radius: 3px;
+      cursor: pointer; background: transparent; font-family: inherit;
+      transition: all 0.2s; flex-shrink: 0; white-space: nowrap;
+    }
+    .g-filter:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+    .g-filter.active { color: #fff; border-color: #fff; background: rgba(255,255,255,0.12); }
+
+    /* ── SEARCH RESULTS ── */
+    .search-results { padding: 0 4%; padding-top: 130px; }
+    .search-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px; padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .search-head-title { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+    .search-head-title em { color: var(--red); font-style: normal; }
+    .search-count { font-size: 11px; color: var(--text-faint); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    .search-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr); /* fixed 3 cols — consistent on mobile */
+      gap: 8px;
+    }
+    @media (min-width: 600px) {
+      .search-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (min-width: 900px) {
+      .search-grid { grid-template-columns: repeat(5, 1fr); }
+    }
+    @media (min-width: 1200px) {
+      .search-grid { grid-template-columns: repeat(6, 1fr); }
+    }
+
+    .search-card {
+      cursor: pointer; border-radius: 4px; overflow: hidden;
+      background: var(--card); position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .search-card:hover { transform: scale(1.04); box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+    .search-poster { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+    .search-poster-ph { width: 100%; aspect-ratio: 2/3; display: flex; align-items: center; justify-content: center; background: #1a1a1a; font-size: 36px; }
+    .search-card-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 55%);
+      padding: 24px 8px 8px;
+    }
+    .search-card-title { font-size: 11px; font-weight: 600; line-height: 1.3; margin-bottom: 2px; }
+    .search-card-year { font-size: 10px; color: var(--text-dim); }
+    .search-rating-badge {
+      position: absolute; top: 6px; left: 6px;
+      background: rgba(0,0,0,0.75); color: #46d369;
+      font-size: 10px; font-weight: 700;
+      padding: 2px 6px; border-radius: 3px;
+    }
+
+    /* ── LOADING ── */
+    .loading-wrap { text-align: center; padding: 80px 0; flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .nf-spinner {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 3px solid rgba(229,9,20,0.2);
+      border-top-color: var(--red);
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-faint); font-weight: 600; }
+
+    /* ── EMPTY ── */
+    .empty-wrap { text-align: center; padding: 100px 0; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .empty-ico { font-size: 56px; margin-bottom: 16px; opacity: 0.3; }
+    .empty-ttl { font-size: 22px; font-weight: 700; color: var(--text-dim); margin-bottom: 8px; }
+    .empty-sub { font-size: 14px; color: var(--text-faint); }
+
+    /* ── MODAL ── */
+    .overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.8);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: #181818; border-radius: 8px;
+      max-width: 920px; width: 100%; max-height: 92vh;
+      overflow-y: auto; position: relative;
+      transform: translateY(32px) scale(0.96);
+      transition: transform 0.35s cubic-bezier(0.16,1,0.3,1);
+      scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
+    }
+    .overlay.open .modal { transform: translateY(0) scale(1); }
+
+    .m-close {
+      position: absolute; top: 14px; right: 14px; z-index: 10;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #181818; border: 2px solid rgba(255,255,255,0.3);
+      color: #fff; font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .m-close:hover { background: #333; border-color: #fff; transform: rotate(90deg); }
+
+    .m-backdrop { position: relative; width: 100%; height: 360px; overflow: hidden; border-radius: 8px 8px 0 0; }
+    .m-backdrop img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .m-backdrop::after {
+      content: ''; position: absolute; inset: 0;
+      background:
+        linear-gradient(to right, rgba(24,24,24,0.8) 0%, transparent 60%),
+        linear-gradient(to top, #181818 0%, transparent 50%);
+    }
+
+    .m-body { padding: 0 32px 40px; }
+    .m-top { display: flex; gap: 24px; align-items: flex-end; margin-top: -100px; margin-bottom: 24px; position: relative; z-index: 2; }
+    .m-poster-wrap { flex-shrink: 0; width: 140px; }
+    .m-poster {
+      width: 100%; aspect-ratio: 2/3; object-fit: cover;
+      border-radius: 6px; display: block;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.8);
+    }
+    .m-poster-ph { width: 100%; aspect-ratio: 2/3; border-radius: 6px; background: var(--card); display: flex; align-items: center; justify-content: center; font-size: 40px; }
+    .m-meta { flex: 1; min-width: 0; padding-bottom: 4px; }
+    .m-genres { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .g-pill {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--text-dim); border: 1px solid rgba(255,255,255,0.15);
+      padding: 3px 10px; border-radius: 2px;
+    }
+    .m-title { font-size: clamp(22px, 4vw, 40px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; margin-bottom: 6px; }
+    .m-tagline { font-size: 13px; color: var(--text-dim); font-style: italic; margin-bottom: 16px; opacity: 0.8; }
+    .m-stats { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+    .stat { display: flex; flex-direction: column; gap: 4px; }
+    .stat-l { font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-faint); }
+    .stat-v { font-size: 16px; font-weight: 700; }
+    .stat-v.g { color: #46d369; }
+
+    /* ACTION BUTTONS */
+    .action-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-trailer {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--red); color: #fff;
+      font-family: inherit; font-size: 13px; font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 11px 22px; border-radius: 4px; border: none; cursor: pointer;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .btn-trailer:hover { background: var(--red-hover); transform: translateY(-1px); }
+    .btn-watch {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(109,109,110,0.7); color: #fff;
+      font-family: inherit; font-size: 13px; font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 11px 22px; border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.2); cursor: pointer;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .btn-watch:hover { background: rgba(109,109,110,0.5); transform: translateY(-1px); }
+
+    /* TRAILER / WATCH EMBED */
+    .trailer-wrap { margin-top: 20px; border-radius: 6px; overflow: hidden; background: #000; position: relative; padding-bottom: 56.25%; height: 0; }
+    .trailer-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+    .no-trailer { background: #222; border-radius: 6px; padding: 24px; text-align: center; color: var(--text-dim); font-size: 14px; margin-top: 20px; }
+    .trailer-fallback { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 14px; padding: 16px; background: #222; border-radius: 6px; font-size: 13px; color: var(--text-dim); }
+    .yt-fallback-btn { display: inline-flex; align-items: center; gap: 6px; background: #ff0000; color: #fff; font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 10px 20px; border-radius: 4px; text-decoration: none; transition: opacity 0.2s; }
+    .yt-fallback-btn:hover { opacity: 0.85; }
+
+    /* WHERE TO WATCH */
+    .wtw-section { margin-top: 24px; }
+    .wtw-title { font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 12px; }
+    .wtw-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .wtw-item {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      border-radius: 6px; padding: 9px 14px;
+      text-decoration: none; color: var(--text);
+      font-size: 13px; font-weight: 500; transition: all 0.2s;
+    }
+    .wtw-item:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); transform: translateY(-2px); }
+    .wtw-logo { width: 26px; height: 26px; border-radius: 5px; object-fit: contain; background: #fff; padding: 2px; }
+    .wtw-type { font-size: 9px; color: var(--text-dim); font-weight: 400; margin-top: 2px; letter-spacing: 0.04em; }
+    .wtw-name-wrap { display: flex; flex-direction: column; }
+    .wtw-none { font-size: 13px; color: var(--text-dim); font-style: italic; }
+
+    .divider { height: 1px; background: rgba(255,255,255,0.08); margin: 22px 0; }
+    .overview-l { font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 10px; }
+    .overview-t { font-size: 14px; line-height: 1.8; color: rgba(255,255,255,0.7); font-weight: 400; }
+
+    /* CAST */
+    .cast-sec { margin-top: 24px; }
+    .cast-l { font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 12px; }
+    .cast-row { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+    .cast-row::-webkit-scrollbar { display: none; }
+    .cast-p { flex-shrink: 0; text-align: center; width: 68px; }
+    .cast-av { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 8px; border: 2px solid rgba(255,255,255,0.1); transition: border-color 0.2s, transform 0.2s; }
+    .cast-p:hover .cast-av { border-color: rgba(255,255,255,0.4); transform: translateY(-2px); }
+    .cast-av-ph { width: 60px; height: 60px; border-radius: 50%; background: var(--card); border: 2px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 8px; }
+    .cast-nm { font-size: 10px; font-weight: 600; color: #e5e5e5; line-height: 1.3; }
+    .cast-ch { font-size: 9px; color: var(--text-dim); font-style: italic; margin-top: 2px; }
+
+    /* SIMILAR */
+    .similar-sec { margin-top: 10px; }
+    .similar-l { font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 12px; }
+    .similar-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+    .similar-row::-webkit-scrollbar { display: none; }
+    .similar-card { flex-shrink: 0; width: 88px; cursor: pointer; }
+    .similar-card img { width: 88px; height: 132px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(255,255,255,0.08); transition: all 0.2s; display: block; }
+    .similar-card:hover img { border-color: rgba(255,255,255,0.3); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    .similar-card-title { font-size: 10px; font-weight: 500; color: var(--text-dim); margin-top: 5px; line-height: 1.3; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ANIMATIONS */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .row-section { animation: fadeIn 0.4s both; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+    /* ── SKELETON LOADERS ── */
+    @keyframes shimmer {
+      0%   { background-position: -600px 0; }
+      100% { background-position: 600px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #222 25%, #2e2e2e 50%, #222 75%);
+      background-size: 600px 100%;
+      animation: shimmer 1.4s ease infinite;
+      border-radius: 4px;
+    }
+    .skeleton-card {
+      flex-shrink: 0;
+      width: 130px;
+    }
+    .skeleton-poster {
+      width: 130px;
+      aspect-ratio: 2/3;
+      border-radius: 4px;
+    }
+    .skeleton-row {
+      display: flex; gap: 6px; padding: 2px;
+    }
+
+    /* ── COLOR-CODED RATINGS ── */
+    .rating-high { color: #46d369; }
+    .rating-mid  { color: #f5c518; }
+    .rating-low  { color: #e50914; }
+
+    /* badge version for search cards */
+    .search-rating-badge.rating-high { background: rgba(70,211,105,0.18); color: #46d369; }
+    .search-rating-badge.rating-mid  { background: rgba(245,197,24,0.18);  color: #f5c518; }
+    .search-rating-badge.rating-low  { background: rgba(229,9,20,0.18);    color: #e50914; }
+
+    /* ── MY LIST BUTTON IN CARD ── */
+    .nf-mylist-btn {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: transparent; color: #fff;
+      border: 2px solid rgba(255,255,255,0.5); cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s, background 0.15s; flex-shrink: 0;
+      line-height: 1;
+    }
+    .nf-mylist-btn:hover { border-color: #fff; background: rgba(255,255,255,0.1); }
+    .nf-mylist-btn.saved { border-color: var(--red); color: var(--red); }
+
+    /* ── MY LIST BUTTON IN MODAL ── */
+    .btn-mylist {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: #fff;
+      font-family: inherit; font-size: 13px; font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 11px 22px; border-radius: 4px;
+      border: 2px solid rgba(255,255,255,0.4); cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, transform 0.15s;
+    }
+    .btn-mylist:hover { border-color: #fff; transform: translateY(-1px); }
+    .btn-mylist.saved { border-color: var(--red); color: var(--red); }
+
+    /* ── SCROLL SNAP ── */
+    .movie-row-outer {
+      scroll-snap-type: x proximity;
+    }
+    .nf-card {
+      scroll-snap-align: start;
+    }
+
+
+    /* ── CONTINUE WATCHING / MY LIST ROWS ── */
+    .cw-row-section {
+      margin-bottom: 32px; padding: 0 4%;
+    }
+    .cw-row-label {
+      font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+      margin-bottom: 10px; color: #e5e5e5;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .cw-row-label em { color: var(--red); font-style: normal; }
+    .cw-row-label .cw-clear {
+      margin-left: auto; font-size: 10px; font-weight: 500;
+      color: var(--text-faint); letter-spacing: 0.08em; text-transform: uppercase;
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      padding: 4px 8px; border-radius: 3px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .cw-row-label .cw-clear:hover { color: #fff; background: rgba(255,255,255,0.07); }
+    .cw-row {
+      display: flex; gap: 8px; overflow-x: auto; padding: 40px 2px 20px;
+      margin: -40px 0 -20px;
+      scroll-snap-type: x proximity;
+      scrollbar-width: none;
+    }
+    .cw-row::-webkit-scrollbar { display: none; }
+    .cw-card {
+      flex-shrink: 0; width: 120px; cursor: pointer;
+      position: relative; scroll-snap-align: start;
+      transition: transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94);
+    }
+    .cw-card:hover { transform: scale(1.08) translateY(-4px); z-index: 10; }
+    .cw-card img {
+      width: 120px; height: 180px; object-fit: cover;
+      border-radius: 4px; display: block;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .cw-card:hover img { border-color: rgba(255,255,255,0.25); }
+    .cw-card-title {
+      font-size: 10px; font-weight: 600; color: #ccc;
+      margin-top: 5px; line-height: 1.3;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    /* progress bar for continue watching */
+    .cw-progress-wrap {
+      position: absolute; bottom: 26px; left: 4px; right: 4px;
+      height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px;
+    }
+    .cw-progress-bar {
+      height: 100%; background: var(--red); border-radius: 2px;
+    }
+    .cw-remove-btn {
+      position: absolute; top: 4px; right: 4px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; font-size: 10px; cursor: pointer;
+      display: none; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .cw-card:hover .cw-remove-btn { display: flex; }
+    .cw-remove-btn:hover { background: var(--red); border-color: var(--red); }
+
+    /* ── CLICK RIPPLE EFFECT — DISABLED ── */
+    /* Ripple disabled to prevent blue/white tap flash on mobile */
+    .ripple { display: none !important; }
+
+    /* ── MOBILE PERFORMANCE ── */
+    @media (max-width: 768px) {
+      .nf-card {
+        /* Disable hover scale on touch – avoid tap-delay jank */
+        transition: none;
+      }
+      .nf-card:hover {
+        transform: none;
+        box-shadow: none;
+        z-index: 1;
+      }
+      .nf-card:hover .nf-card-info {
+        max-height: 0; opacity: 0; padding: 0 12px;
+      }
+      /* Tap to open directly on mobile */
+    }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; height: 60px; }
+      .nav-links { display: none; }
+      .nav-logo { font-size: 22px; }
+      .hero-banner { height: 70vh; min-height: 380px; }
+      .hero-content { padding: 0 16px 36px; }
+      .hero-overview { display: none; } /* hide overview on mobile, too cramped */
+      #app { margin-top: 0px; }
+      #app.tab-view { padding-top: 76px; } /* 60px nav + 16px gap on mobile */
+      .row-section { padding: 0 12px; }
+      .genre-bar { padding: 0 12px; }
+      .search-results { padding: 0 12px; padding-top: 120px; }
+      .nf-card { width: 100px; }
+      .skeleton-card { width: 100px; }
+      .skeleton-poster { width: 100px; }
+      .m-top { flex-direction: column; align-items: flex-start; margin-top: -60px; }
+      .m-poster-wrap { width: 100px; }
+      .m-body { padding: 0 16px 32px; }
+      .m-backdrop { height: 220px; }
+      .search-dropdown { top: 60px; }
+      .cw-row-section { padding: 0 12px; }
+      .cw-card { width: 95px; }
+      .cw-card img { width: 95px; height: 143px; }
+    }
+
+    /* ═════════════════════════════════════════════════════════════════════════
+       EMBED PLAYER ENHANCEMENTS — CSS
+       Spinner, loading states, and improved iframe styling
+       ═════════════════════════════════════════════════════════════════════════ */
+
+    /* ── EMBED SPINNER ── */
+    .embed-spinner {
+      width: 40px;
+      height: 40px;
+      border: 2px solid rgba(229, 9, 20, 0.2);
+      border-top-color: var(--red);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── EMBED LOADING STATE ── */
+    .embed-loading {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* ── TRAILER WRAP (applies to embed container too) ── */
+    .trailer-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      min-height: 300px;
+      background: rgba(0,0,0,0.35);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    }
+
+    /* ── IFRAME STYLING ── */
+    .trailer-wrap iframe {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 8px;
+      background: #000;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    /* Mobile optimization */
+    @media (max-width: 768px) {
+      .trailer-wrap {
+        aspect-ratio: auto;
+        min-height: 250px;
+      }
+      
+      .trailer-wrap iframe {
+        -webkit-touch-callout: none;
+      }
+    }
+
+    /* ── NO STREAM FOUND STYLING ── */
+    .no-trailer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .no-trailer a:hover,
+    .no-trailer button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(229, 9, 20, 0.3);
+    }
+
+    /* ── RESPONSIVE ADJUSTMENTS ── */
+    @media (max-width: 480px) {
+      .embed-spinner {
+        width: 32px;
+        height: 32px;
+      }
+      
+      .trailer-wrap {
+        min-height: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PWA Install Banner -->
+  <div id="installBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a1a1a;border:1px solid rgba(229,9,20,0.4);border-radius:12px;padding:14px 18px;align-items:center;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,0.6);max-width:340px;width:90%;">
+    <div style="font-size:26px">🎬</div>
+    <div style="flex:1"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:2px">Install CineSearch</div><div style="font-size:11px;color:#a3a3a3">Add to home screen for app experience</div></div>
+    <button id="installBtn" style="background:#e50914;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Install</button>
+    <button id="dismissInstall" style="background:none;border:none;color:#555;font-size:18px;cursor:pointer;padding:0 4px;">✕</button>
+  </div>
+
+  <!-- NAV -->
+  <nav id="mainNav">
+    <div class="nav-left">
+      <a class="nav-logo" href="#">CINESEARCH</a>
+      <div class="nav-links">
+        <button class="nav-link active" onclick="showHome()">Home</button>
+        <button class="nav-link" onclick="switchToTab('trending', this)">Trending</button>
+        <button class="nav-link" onclick="switchToTab('toprated', this)">Top Rated</button>
+        <button class="nav-link" onclick="switchToTab('upcoming', this)">Coming Soon</button>
+      </div>
+    </div>
+    <button class="search-toggle-btn" id="searchToggleBtn" onclick="toggleSearch()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+  </nav>
+
+  <!-- SEARCH BAR (drops below nav when open) -->
+  <div class="search-dropdown" id="searchDropdown" style="position:relative">
+    <div class="search-dropdown-inner">
+      <svg class="search-icon-inner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="si" placeholder="Search titles, genres, keywords…" autocomplete="off"/>
+      <button class="search-clear-btn" id="searchClearBtn" onclick="clearSearch()">✕</button>
+    </div>
+    <!-- Autocomplete dropdown -->
+
+  </div>
+
+  <!-- HERO BANNER -->
+  <div class="hero-banner" id="heroBanner">
+    <div class="hero-bg" id="heroBg"></div>
+    <div class="hero-content" id="heroContent">
+      <div class="hero-badge">TRENDING NOW</div>
+      <div class="hero-title" id="heroTitle">Loading…</div>
+      <div class="hero-meta" id="heroMeta"></div>
+      <div class="hero-overview" id="heroOverview"></div>
+      <div class="hero-btns">
+        <button class="hero-btn hero-btn-play" id="heroPlayBtn" onclick="heroWatch()"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Watch Trailer</button>
+        <button class="hero-btn hero-btn-info" id="heroInfoBtn" onclick="heroInfo()">ⓘ More Info</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GENRE BAR -->
+  <div class="genre-bar" id="genreBar" style="display:none"></div>
+
+  <!-- MAIN APP -->
+  <main id="app"></main>
+
+  <!-- MODAL -->
+  <div class="overlay" id="ov" onclick="handleOv(event)">
+    <div class="modal" id="modal">
+      <button class="m-close" onclick="closeM()">✕</button>
+      <div id="minner"></div>
+    </div>
+  </div>
+
+  <script>
+    const K = '2dca580c2a14b55200e784d157207b4d';
+    const B = 'https://api.themoviedb.org/3';
+    const P = 'https://image.tmdb.org/t/p/w500';
+    const BK = 'https://image.tmdb.org/t/p/w1280';
+    const SM = 'https://image.tmdb.org/t/p/w185';
+    const LOGO = 'https://image.tmdb.org/t/p/w92';
+    const BACK = 'https://image.tmdb.org/t/p/w780'; // for nf card backdrops
+
+    const typeLabel = { flatrate: 'Streaming', rent: 'Rent', buy: 'Buy' };
+
+    // ── NAV scroll solid ──
+    window.addEventListener('scroll', () => {
+      document.getElementById('mainNav').classList.toggle('solid', window.scrollY > 60);
+    });
+
+    // ── SEARCH TOGGLE + DEBOUNCE ──
+    let searchOpen = false;
+    let searchDebounce = null;
+
+    function toggleSearch() {
+      searchOpen = !searchOpen;
+      const dropdown = document.getElementById('searchDropdown');
+      const btn = document.getElementById('searchToggleBtn');
+      if (searchOpen) {
+        dropdown.style.display = 'block';
+        requestAnimationFrame(() => dropdown.classList.add('open'));
+        setTimeout(() => document.getElementById('si').focus(), 50);
+        btn.style.opacity = '0.5';
+      } else {
+        dropdown.classList.remove('open');
+        setTimeout(() => { dropdown.style.display = 'none'; }, 250);
+        clearSearch();
+        btn.style.opacity = '1';
+      }
+    }
+
+    function clearSearch() {
+      const si = document.getElementById('si');
+      si.value = '';
+      document.getElementById('searchClearBtn').classList.remove('visible');
+      showHome();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const si = document.getElementById('si');
+      si.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { toggleSearch(); return; }
+        if (e.key === 'Enter') { clearTimeout(searchDebounce); doSearch(); }
+      });
+      si.addEventListener('input', e => {
+        const val = e.target.value.trim();
+        document.getElementById('searchClearBtn').classList.toggle('visible', val.length > 0);
+        clearTimeout(searchDebounce);
+        if (!val) { showHome(); return; }
+        searchDebounce = setTimeout(() => doSearch(), 500);
+      });
+    });
+
+    function doSearch() {
+      const val = document.getElementById('si').value.trim();
+      if (!val) return;
+      loadSearchResults(val);
+    }
+
+    async function loadSearchResults(val) {
+      document.getElementById('heroBanner').style.display = 'none';
+      document.getElementById('genreBar').style.display = 'none';
+      showLoading();
+      try {
+        const [movieRes, tvRes] = await Promise.all([
+          fetch(`${B}/search/movie?api_key=${K}&query=${encodeURIComponent(val)}&language=en-US`).then(r=>r.json()),
+          fetch(`${B}/search/tv?api_key=${K}&query=${encodeURIComponent(val)}&language=en-US`).then(r=>r.json()),
+        ]);
+        const movies = (movieRes.results || []).map(m => ({ ...m, _type: 'movie' }));
+        const shows  = (tvRes.results  || []).map(s => ({ ...s, _type: 'tv', title: s.name || s.original_name, release_date: s.first_air_date }));
+        // Merge and sort by popularity
+        const combined = [...movies, ...shows].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+        renderSearchGrid(combined, val);
+      } catch { showError(); }
+    }
+
+    function renderSearchGrid(movies, query) {
+      if (!movies.length) {
+        document.getElementById('app').innerHTML = `<div class="empty-wrap" style="padding-top:120px"><div class="empty-ico">🎬</div><div class="empty-ttl">No results for "${query}"</div><div class="empty-sub">Try a different title or keyword.</div></div>`;
+        return;
+      }
+      const cards = movies.map((m, i) => {
+        const year = m.release_date ? m.release_date.slice(0,4) : '—';
+        const rat = m.vote_average ? m.vote_average.toFixed(1) : '—';
+        const img = m.poster_path
+          ? `<img class="search-poster" src="${P}${m.poster_path}" alt="" loading="lazy"/>`
+          : `<div class="search-poster-ph">🎬</div>`;
+        const isTV = m._type === 'tv';
+        const clickFn = isTV ? `openTV(${m.id})` : `openM(${m.id})`;
+        const typeBadge = isTV ? `<div style="position:absolute;bottom:28px;right:6px;background:rgba(229,9,20,0.85);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:2px;letter-spacing:0.06em;">TV</div>` : '';
+        return `
+          <div class="search-card" onclick="${clickFn}" style="animation:fadeIn 0.3s ${Math.min(i,11)*0.04}s both">
+            ${img}
+            <div class="search-rating-badge">★ ${rat}</div>
+            ${typeBadge}
+            <div class="search-card-overlay">
+              <div class="search-card-title">${m.title}</div>
+              <div class="search-card-year">${year}</div>
+            </div>
+          </div>`;
+      }).join('');
+      document.getElementById('app').innerHTML = `
+        <div class="search-results">
+          <div class="search-head">
+            <div class="search-head-title">Results for <em>"${query}"</em></div>
+            <div class="search-count">${movies.length} titles</div>
+          </div>
+          <div class="search-grid">${cards}</div>
+        </div>`;
+    }
+
+    // ── HERO ──
+    let heroMovieId = null;
+    let heroTrailerKeys = [];
+
+    function setHero(movies) {
+      const m = movies.find(x => x.backdrop_path) || movies[0];
+      if (!m) return;
+      heroMovieId = m.id;
+      document.getElementById('heroBg').style.backgroundImage = `url(${BK}${m.backdrop_path})`;
+      document.getElementById('heroTitle').textContent = m.title;
+      const year = m.release_date ? m.release_date.slice(0,4) : '';
+      const rat = m.vote_average ? m.vote_average.toFixed(1) : '';
+      document.getElementById('heroMeta').innerHTML = `<span class="hero-rating">★ ${rat}</span><span>${year}</span>`;
+      document.getElementById('heroOverview').textContent = m.overview || '';
+      // fetch trailer keys for hero
+      fetch(`${B}/movie/${m.id}/videos?api_key=${K}&language=en-US`)
+        .then(r => r.json()).then(d => { heroTrailerKeys = getTrailer(d); });
+    }
+
+    function heroWatch() {
+      if (heroTrailerKeys.length) {
+        openM(heroMovieId);
+      } else {
+        openM(heroMovieId);
+      }
+    }
+    function heroInfo() { openM(heroMovieId); }
+
+    // ── SHOW HOME ──
+    function showHome() {
+      document.getElementById('si').value = '';
+      document.getElementById('heroBanner').style.display = '';
+      document.getElementById('app').classList.remove('tab-view');
+      currentView = 'home';
+      loadAllRows();
+    }
+
+    // ── ROWS ──
+    let currentView = 'home';
+    let activeGenre = null;
+
+    async function loadAllRows() {
+      showLoading();
+      try {
+        const [trendR, topR, upR] = await Promise.all([
+          fetch(`${B}/trending/movie/week?api_key=${K}`).then(r=>r.json()),
+          fetch(`${B}/movie/top_rated?api_key=${K}&language=en-US`).then(r=>r.json()),
+          fetch(`${B}/discover/movie?api_key=${K}&language=en-US&sort_by=popularity.desc&primary_release_date.gte=2026-01-01&primary_release_date.lte=2026-12-31&page=1`).then(r=>r.json()),
+        ]);
+        const trending = trendR.results || [];
+        const toprated = topR.results || [];
+        const upcoming = (upR.results || []).filter(m => m.release_date && m.release_date.startsWith('2026'));
+
+        setHero(trending);
+        showGenreBar(trending);
+
+        document.getElementById('app').innerHTML = `
+          <div id="genreBarInline"></div>
+          <div class="row-section" style="animation-delay:0s">
+            <div class="row-label">Trending <em>This Week</em></div>
+            <div class="movie-row-outer"><div class="movie-row" id="row-trending"></div></div>
+          </div>
+          <div class="row-section" style="animation-delay:0.1s">
+            <div class="row-label">Top <em>Rated</em></div>
+            <div class="movie-row-outer"><div class="movie-row" id="row-toprated"></div></div>
+          </div>
+          <div class="row-section" style="animation-delay:0.2s">
+            <div class="row-label">Coming <em>Soon</em></div>
+            <div class="movie-row-outer"><div class="movie-row" id="row-upcoming"></div></div>
+          </div>`;
+
+        renderRow('row-trending', trending);
+        renderRow('row-toprated', toprated);
+        renderRow('row-upcoming', upcoming);
+      } catch { showError(); }
+    }
+
+    function renderRow(rowId, movies) {
+      const row = document.getElementById(rowId);
+      if (!row) return;
+      row.innerHTML = movies.filter(m => m.poster_path || m.backdrop_path).map(m => {
+        const year = m.release_date ? m.release_date.slice(0,4) : '—';
+        const rat = m.vote_average ? m.vote_average.toFixed(1) : '—';
+        const genres = (m.genre_ids || []).slice(0,2).map(id => GENRES[id]).filter(Boolean);
+        const img = m.poster_path
+          ? `<img class="nf-poster" src="${P}${m.poster_path}" alt="" loading="lazy"/>`
+          : `<div class="nf-poster-fallback">🎬</div>`;
+        return `
+          <div class="nf-card">
+            <div class="nf-card-inner">
+              ${img}
+              <div class="nf-card-info">
+                <div class="nf-card-title">${m.title}</div>
+                <div class="nf-card-row1">
+                  <button class="nf-play-btn" onclick="openM(${m.id})"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>
+                  <button class="nf-info-btn" onclick="openM(${m.id})">ⓘ</button>
+                  <span class="nf-rating">★ ${rat}</span>
+                </div>
+                <div class="nf-tags">
+                  <span class="nf-tag">${year}</span>
+                  ${genres.map(g => `<span class="nf-tag">${g}</span>`).join('')}
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── TAB NAV ──
+    function switchToTab(tab, btn) {
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('heroBanner').style.display = 'none';
+      document.getElementById('si').value = '';
+      document.getElementById('app').classList.add('tab-view');
+      loadSingleTab(tab);
+    }
+
+    async function loadSingleTab(tab) {
+      activeGenre = null;
+      const urls = {
+        trending: `${B}/trending/movie/week?api_key=${K}`,
+        toprated: `${B}/movie/top_rated?api_key=${K}&language=en-US`,
+        upcoming: `${B}/discover/movie?api_key=${K}&language=en-US&sort_by=popularity.desc&primary_release_date.gte=2026-01-01&primary_release_date.lte=2026-12-31&page=1`
+      };
+      const labels = {
+        trending: 'Trending <em>This Week</em>',
+        toprated: 'Top <em>Rated</em>',
+        upcoming: 'Coming <em>Soon</em>'
+      };
+      showLoading();
+      try {
+        const r = await fetch(urls[tab]);
+        const d = await r.json();
+        let movies = d.results || [];
+        if (tab === 'upcoming') movies = movies.filter(m => m.release_date && m.release_date.startsWith('2026'));
+        if (tab !== 'upcoming') showGenreBar(movies, tab);
+        else document.getElementById('genreBar').style.display = 'none';
+        renderSingleRow(movies, labels[tab]);
+      } catch { showError(); }
+    }
+
+    function renderSingleRow(movies, label) {
+      const filtered = activeGenre ? movies.filter(m => (m.genre_ids||[]).includes(activeGenre)) : movies;
+      document.getElementById('app').innerHTML = `
+        <div class="row-section">
+          <div class="row-label">${label}</div>
+          <div class="movie-row-outer"><div class="movie-row" id="row-single"></div></div>
+        </div>`;
+      renderRow('row-single', filtered);
+    }
+
+    // ── GENRE BAR ──
+    let _genreMovies = []; let _genreTab = null;
+    function showGenreBar(movies, tab) {
+      _genreMovies = movies; _genreTab = tab;
+      const oldBar = document.getElementById('genreBar');
+      if (oldBar) oldBar.style.display = 'none';
+      const bar = document.getElementById('genreBarInline');
+      if (!bar) return;
+      const gSet = new Set();
+      movies.forEach(m => (m.genre_ids||[]).forEach(id => { if (GENRES[id]) gSet.add(id); }));
+      if (!gSet.size) { bar.style.display = 'none'; return; }
+      bar.className = 'genre-bar';
+      bar.style.display = 'flex';
+      bar.innerHTML = '<button class="g-filter active" onclick="filterGenre(null,this)">All</button>' +
+        [...gSet].map(id => `<button class="g-filter" onclick="filterGenre(${id},this)">${GENRES[id]}</button>`).join('');
+    }
+
+    function filterGenre(id, btn) {
+      activeGenre = id;
+      document.querySelectorAll('.g-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (_genreTab) {
+        renderSingleRow(_genreMovies, { trending:'🔥 Trending <em>This Week</em>', toprated:'⭐ Top <em>Rated</em>' }[_genreTab] || '');
+      }
+    }
+
+    // ── LOADING / ERROR ──
+    function showLoading(msg) {
+      document.getElementById('app').innerHTML = `
+        <div class="loading-wrap" style="padding-top:60px">
+          <div class="nf-spinner"></div>
+          <div class="loading-text">${msg || 'Loading…'}</div>
+        </div>`;
+    }
+    function showError() {
+      document.getElementById('app').innerHTML = `<div class="empty-wrap"><div class="empty-ico">⚠️</div><div class="empty-ttl">Something went wrong</div><div class="empty-sub">Please try again.</div></div>`;
+    }
+
+    // ── GENRE MAP ──
+    const GENRES = {
+      28:'Action',12:'Adventure',16:'Animation',35:'Comedy',80:'Crime',
+      99:'Documentary',18:'Drama',10751:'Family',14:'Fantasy',36:'History',
+      27:'Horror',10402:'Music',9648:'Mystery',10749:'Romance',
+      878:'Sci-Fi',10770:'TV Movie',53:'Thriller',10752:'War',37:'Western'
+    };
+
+    // ── MODAL ──
+    function handleOv(e) { if (e.target === document.getElementById('ov')) closeM(); }
+    function closeM() {
+      const area = document.getElementById('trailerArea');
+      if (area) area.innerHTML = '';
+      const watchArea = document.getElementById('watchArea');
+      if (watchArea) watchArea.innerHTML = '';
+      document.getElementById('ov').classList.remove('open');
+      document.body.style.overflow = '';
+      trailerVisible = false; trailerIndex = 0; watchVisible = false; embedQueue = []; embedIndex = 0;
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeM(); });
+
+    async function openM(id) {
+      document.getElementById('minner').innerHTML = `<div class="loading-wrap" style="min-height:400px"><div class="nf-spinner"></div><div class="loading-text">Loading…</div></div>`;
+      document.getElementById('ov').classList.add('open');
+      document.body.style.overflow = 'hidden';
+      try {
+        const [dR, cR, vR, wR] = await Promise.all([
+          fetch(`${B}/movie/${id}?api_key=${K}&language=en-US`),
+          fetch(`${B}/movie/${id}/credits?api_key=${K}&language=en-US`),
+          fetch(`${B}/movie/${id}/videos?api_key=${K}&language=en-US`),
+          fetch(`${B}/movie/${id}/watch/providers?api_key=${K}`)
+        ]);
+        renderModal(await dR.json(), await cR.json(), await vR.json(), await wR.json());
+      } catch {
+        document.getElementById('minner').innerHTML = `<div class="empty-wrap"><div class="empty-ico">⚠️</div><div class="empty-ttl">Failed to load</div></div>`;
+      }
+    }
+
+    // ── TRAILER LOGIC (unchanged) ──
+    function getTrailer(videos) {
+      const results = videos.results || [];
+      const trailers = results.filter(v => v.site === 'YouTube' && v.type === 'Trailer');
+      const teasers = results.filter(v => v.site === 'YouTube' && v.type === 'Teaser');
+      const others = results.filter(v => v.site === 'YouTube' && v.type !== 'Trailer' && v.type !== 'Teaser');
+      return [...trailers, ...teasers, ...others].map(v => v.key);
+    }
+
+    let trailerVisible = false;
+    let trailerKeys = [];
+    let trailerIndex = 0;
+
+    function loadTrailerAtIndex(idx, btnId) {
+      const wrap = document.getElementById('trailerArea');
+      if (!wrap) return;
+      if (idx >= trailerKeys.length) {
+        wrap.innerHTML = '<div class="no-trailer">No embeddable trailer available for this movie.</div>';
+        document.getElementById(btnId).innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Watch Trailer';
+        trailerVisible = false; trailerIndex = 0; watchVisible = false; embedIndex = 0;
+        return;
+      }
+      const key = trailerKeys[idx];
+      const ytUrl = `https://www.youtube.com/watch?v=${key}`;
+      wrap.style.display = 'block';
+      wrap.innerHTML = `
+        <div class="trailer-wrap">
+          <iframe id="trailerIframe"
+            src="https://www.youtube-nocookie.com/embed/${key}?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
+            allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>
+        </div>
+        <div class="trailer-fallback" id="trailerFallback" style="display:none">
+          <span>Can't play embedded trailer.</span>
+          <a href="${ytUrl}" target="_blank" rel="noopener" class="yt-fallback-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><polygon points="5,3 19,12 5,21"/></svg> Watch on YouTube</a>
+        </div>`;
+      document.getElementById(btnId).innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Close Trailer';
+      trailerVisible = true;
+      window._trailerBtnId = btnId;
+      window.addEventListener('message', function onYTMsg(e) {
+        try {
+          const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+          if (data && data.event === 'onError' && (data.info === 153 || data.info === 150 || data.info === 101 || data.info === 2)) {
+            window.removeEventListener('message', onYTMsg);
+            if (trailerIndex + 1 < trailerKeys.length) {
+              trailerIndex++; loadTrailerAtIndex(trailerIndex, window._trailerBtnId);
+            } else {
+              const fb = document.getElementById('trailerFallback');
+              const tw = document.querySelector('.trailer-wrap');
+              if (fb) fb.style.display = 'flex';
+              if (tw) tw.style.display = 'none';
+            }
+          }
+        } catch(err) {}
+      });
+    }
+
+    function handleTrailerBtn(btn) {
+      const keys = JSON.parse(btn.dataset.keys || '[]');
+      toggleTrailer(keys, 'trailerBtn');
+    }
+
+    function toggleTrailer(keys, btnId) {
+      const wrap = document.getElementById('trailerArea');
+      if (!wrap) return;
+      if (trailerVisible) {
+        wrap.innerHTML = ''; wrap.style.display = 'none';
+        document.getElementById(btnId).innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Watch Trailer';
+        trailerVisible = false; trailerIndex = 0; watchVisible = false; embedIndex = 0;
+      } else {
+        trailerKeys = keys; trailerIndex = 0;
+        loadTrailerAtIndex(trailerIndex, btnId);
+      }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // CINESEARCH EMBED PLAYER SYSTEM — VIDSRC ONLY
+    // Single provider for clean, reliable streaming
+    // ═════════════════════════════════════════════════════════════════════════
+
+    // ── EMBED SOURCES CONFIGURATION ──
+    // VIDSRC only — maximum reliability
+    const embedSources = [
+      {
+        name: 'VIDSRC',
+        urls: (t, i) => {
+          const urls = [];
+          if (i) urls.push(`https://vidsrc.to/embed/movie/${i}`);
+          urls.push(`https://vidsrc.to/embed/movie/${t}`);
+          return urls;
+        }
+      }
+    ];
+
+    // ── BUILD EMBED QUEUE ──
+    function buildEmbedQueue(tmdbId, imdbId) {
+      const queue = [];
+      embedSources.forEach(src => {
+        const urls = src.urls(tmdbId, imdbId).filter(Boolean);
+        urls.forEach((url, idx) => {
+          queue.push({
+            name: src.name,
+            variant: idx === 0 ? '' : ` (Alt ${idx})`,
+            url,
+          });
+        });
+      });
+      return queue;
+    }
+
+    // ── STATE MANAGEMENT ──
+    let watchVisible = false;
+    let embedQueue = [];
+    let embedIndex = 0;
+    let currentEmbedTimeout = null;
+
+    // ── POPUP BLOCKER ──
+    window.addEventListener('blur', () => {
+      const active = document.activeElement;
+      if (active && active.tagName === 'IFRAME') {
+        setTimeout(() => { 
+          try { window.focus(); } 
+          catch(e){}
+        }, 100);
+      }
+    });
+
+    // ── TOGGLE WATCH MODAL ──
+    function toggleWatch(btn) {
+      const wrap = document.getElementById('watchArea');
+      const tmdbId = btn.dataset.id;
+      const imdbId = btn.dataset.imdb || '';
+      
+      if (!wrap) return;
+      
+      if (watchVisible) {
+        wrap.innerHTML = '';
+        wrap.style.display = 'none';
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg> Watch Movie';
+        watchVisible = false;
+        embedQueue = [];
+        embedIndex = 0;
+        clearTimeout(currentEmbedTimeout);
+      } else {
+        embedQueue = buildEmbedQueue(tmdbId, imdbId);
+        embedIndex = 0;
+        loadEmbed(btn);
+      }
+    }
+
+    // ── LOAD & RENDER EMBED ──
+    function loadEmbed(btn) {
+      const wrap = document.getElementById('watchArea');
+      if (!wrap) return;
+      
+      if (embedIndex >= embedQueue.length) {
+        showNoStreamFound(wrap, btn);
+        return;
+      }
+      
+      const entry = embedQueue[embedIndex];
+      const sourceNum = embedIndex + 1;
+      const totalSources = embedQueue.length;
+      
+      clearTimeout(currentEmbedTimeout);
+      
+      // Render loading state
+      wrap.style.display = 'block';
+      wrap.innerHTML = `
+        <div class="trailer-wrap embed-loading" style="margin-top:16px;position:relative;min-height:300px;background:#0a0a0a;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+          <div style="text-align:center;">
+            <div class="embed-spinner"></div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
+          <button onclick="nextEmbed(document.getElementById('watchBtn'))" style="background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:inherit;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;padding:8px 18px;border-radius:4px;cursor:pointer;transition:all 0.2s;">
+            Try Another Source
+          </button>
+        </div>`;
+      
+      // Create iframe with error handling
+      setTimeout(() => {
+        const iframeContainer = wrap.querySelector('.embed-loading');
+        if (!iframeContainer) return;
+        
+        const iframe = document.createElement('iframe');
+        iframe.src = entry.url;
+        iframe.allowFullscreen = true;
+        iframe.allow = 'autoplay; fullscreen; encrypted-media; accelerometer; gyroscope; picture-in-picture';
+        iframe.referrerPolicy = 'no-referrer';
+        iframe.style.cssText = `
+          width:100%;
+          height:100%;
+          border:none;
+          border-radius:8px;
+          background:#000;
+        `;
+        
+        let loadedSuccessfully = false;
+        
+        iframe.onload = () => {
+          loadedSuccessfully = true;
+          clearTimeout(currentEmbedTimeout);
+          iframeContainer?.classList.remove('embed-loading');
+        };
+        
+        iframe.onerror = () => {
+          clearTimeout(currentEmbedTimeout);
+          if (!loadedSuccessfully) {
+            nextEmbed(btn);
+          }
+        };
+        
+        currentEmbedTimeout = setTimeout(() => {
+          if (!loadedSuccessfully && iframeContainer && iframeContainer.parentElement) {
+            nextEmbed(btn);
+          }
+        }, 8000);
+        
+        iframeContainer.innerHTML = '';
+        iframeContainer.appendChild(iframe);
+        iframeContainer.classList.remove('embed-loading');
+      }, 100);
+      
+      watchVisible = true;
+      btn.innerHTML = '✕ Close Player';
+    }
+
+    // ── NO STREAM FOUND FALLBACK ──
+    function showNoStreamFound(wrap, btn) {
+      wrap.style.display = 'block';
+      wrap.innerHTML = `
+        <div class="no-trailer" style="margin-top:16px;text-align:center;padding:24px 16px;background:rgba(255,9,20,0.05);border:1px solid rgba(229,9,20,0.2);border-radius:8px;">
+          <div style="margin-bottom:12px;opacity:0.4;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M8 15s1.5-2 4-2 4 2 4 2"/>
+              <line x1="9" y1="9" x2="9.01" y2="9"/>
+              <line x1="15" y1="9" x2="15.01" y2="9"/>
+            </svg>
+          </div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:6px;">This movie is currently unavailable.</div>
+          <div style="font-size:12px;color:var(--text-faint);">
+            The title may not be indexed yet by streaming providers.
+          </div>
+        </div>`;
+      
+      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg> Watch Movie';
+      watchVisible = false;
+    }
+
+    // ── WHERE TO WATCH (unchanged) ──
+    function buildWTW(providers) {
+      const region = providers.results?.PH || providers.results?.US || null;
+      if (!region) return '<div class="wtw-none">Not available in your region on major streaming platforms.</div>';
+      const link = region.link || '#';
+      let html = ''; const types = ['flatrate','rent','buy']; let found = false;
+      types.forEach(type => {
+        if (!region[type]) return;
+        region[type].slice(0,6).forEach(p => {
+          found = true;
+          const logo = p.logo_path ? `<img class="wtw-logo" src="${LOGO}${p.logo_path}" alt="${p.provider_name}"/>` : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>`;
+          html += `<a class="wtw-item" href="${link}" target="_blank" rel="noopener">${logo}<div class="wtw-name-wrap"><span>${p.provider_name}</span><span class="wtw-type">${typeLabel[type]||type}</span></div></a>`;
+        });
+      });
+      if (!found) return '<div class="wtw-none">Not available on major streaming platforms right now.</div>';
+      return html;
+    }
+
+    // ── RENDER MODAL (unchanged logic) ──
+    function renderModal(m, credits, videos, providers) {
+      const year = m.release_date ? m.release_date.slice(0,4) : '—';
+      const rat = m.vote_average ? m.vote_average.toFixed(1) : '—';
+      const rt = m.runtime ? `${Math.floor(m.runtime/60)}h ${m.runtime%60}m` : '—';
+      const genres = (m.genres||[]).map(g => `<span class="g-pill">${g.name}</span>`).join('');
+      const backdrop = m.backdrop_path
+        ? `<div class="m-backdrop"><img src="${BK}${m.backdrop_path}" alt=""/></div>`
+        : `<div class="m-backdrop" style="height:180px;background:#111"></div>`;
+      const poster = m.poster_path
+        ? `<img class="m-poster" src="${P}${m.poster_path}" alt=""/>`
+        : `<div class="m-poster-ph">🎬</div>`;
+
+      const movieTrailerKeys = getTrailer(videos);
+      const trailerBtn = movieTrailerKeys.length
+        ? `<button class="btn-trailer" id="trailerBtn" data-keys='${JSON.stringify(movieTrailerKeys)}' onclick="handleTrailerBtn(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Watch Trailer</button>`
+        : `<button class="btn-trailer" style="opacity:0.4;cursor:default"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> No Trailer Available</button>`;
+
+      const wtwHtml = buildWTW(providers);
+      const cast = (credits.cast||[]).slice(0,10).map(c => {
+        const av = c.profile_path ? `<img class="cast-av" src="${SM}${c.profile_path}" alt=""/>` : `<div class="cast-av-ph">👤</div>`;
+        return `<div class="cast-p">${av}<div class="cast-nm">${c.name}</div><div class="cast-ch">${c.character||''}</div></div>`;
+      }).join('');
+
+      trailerVisible = false; trailerIndex = 0; watchVisible = false; embedIndex = 0;
+
+      document.getElementById('minner').innerHTML = `
+        ${backdrop}
+        <div class="m-body">
+          <div class="m-top">
+            <div class="m-poster-wrap">${poster}</div>
+            <div class="m-meta">
+              <div class="m-genres">${genres}</div>
+              <div class="m-title">${m.title}</div>
+              ${m.tagline ? `<div class="m-tagline">"${m.tagline}"</div>` : ''}
+              <div class="m-stats">
+                <div class="stat"><div class="stat-l">Rating</div><div class="stat-v g">★ ${rat}</div></div>
+                <div class="stat"><div class="stat-l">Year</div><div class="stat-v">${year}</div></div>
+                <div class="stat"><div class="stat-l">Runtime</div><div class="stat-v">${rt}</div></div>
+                <div class="stat"><div class="stat-l">Votes</div><div class="stat-v">${(m.vote_count||0).toLocaleString()}</div></div>
+              </div>
+              <div style="margin-top:20px" class="action-btns">
+                ${trailerBtn}
+                <button class="btn-watch" id="watchBtn" data-id="${m.id}" data-imdb="${m.imdb_id||''}" data-title="${encodeURIComponent(m.title||'')}" data-year="${year}" onclick="toggleWatch(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg> Watch Movie</button>
+              </div>
+            </div>
+          </div>
+          <div id="trailerArea" style="display:none"></div>
+          <div id="watchArea" style="display:none"></div>
+          <div class="divider"></div>
+          <div class="overview-l">Synopsis</div>
+          <div class="overview-t">${m.overview || 'No synopsis available.'}</div>
+          <div class="wtw-section">
+            <div class="divider"></div>
+            <div class="wtw-title">Where to Watch</div>
+            <div class="wtw-grid">${wtwHtml}</div>
+          </div>
+          ${cast ? `<div class="cast-sec"><div class="divider"></div><div class="cast-l">Cast</div><div class="cast-row">${cast}</div></div>` : ''}
+          <div id="similarSec"></div>
+        </div>`;
+
+      document.getElementById('modal').scrollTop = 0;
+      loadSimilar(m.id);
+    }
+
+    // ── SIMILAR ──
+    async function loadSimilar(id) {
+      try {
+        const r = await fetch(`${B}/movie/${id}/similar?api_key=${K}&language=en-US`);
+        const d = await r.json();
+        const movies = (d.results||[]).slice(0,15).filter(m => m.poster_path);
+        if (!movies.length) return;
+        const cards = movies.map(m => `
+          <div class="similar-card" onclick="closeM();setTimeout(()=>openM(${m.id}),300)">
+            <img src="${P}${m.poster_path}" alt="" loading="lazy"/>
+            <div class="similar-card-title">${m.title}</div>
+          </div>`).join('');
+        const sec = document.getElementById('similarSec');
+        if (sec) sec.innerHTML = `<div class="divider"></div><div class="similar-l">You Might Also Like</div><div class="similar-row">${cards}</div>`;
+      } catch {}
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       ▼▼▼  CINESEARCH ENHANCEMENTS — added below init  ▼▼▼
+       All new features live here. No existing functions modified.
+    ═══════════════════════════════════════════════════════════ */
+
+    // ─────────────────────────────────────────────
+    // 1. COLOR-CODED RATING HELPER
+    // ─────────────────────────────────────────────
+    function ratingClass(score) {
+      const n = parseFloat(score);
+      if (isNaN(n)) return '';
+      if (n >= 7)   return 'rating-high';
+      if (n >= 5)   return 'rating-mid';
+      return 'rating-low';
+    }
+
+    // ─────────────────────────────────────────────
+    // 2. SKELETON LOADER (replaces spinner for rows)
+    // ─────────────────────────────────────────────
+    function skeletonRow(count = 10) {
+      return Array.from({length: count}, () =>
+        `<div class="skeleton-card"><div class="skeleton skeleton-poster"></div></div>`
+      ).join('');
+    }
+
+    // ─────────────────────────────────────────────
+    // 3. MY LIST — localStorage favorites
+    // ─────────────────────────────────────────────
+    function getMyList() {
+      try { return JSON.parse(localStorage.getItem('cinesearch_mylist') || '[]'); } catch { return []; }
+    }
+    function saveMyList(list) {
+      try { localStorage.setItem('cinesearch_mylist', JSON.stringify(list)); } catch {}
+    }
+    function isInMyList(id) {
+      return getMyList().some(m => m.id === id);
+    }
+    function toggleMyList(id, title, posterPath) {
+      let list = getMyList();
+      const idx = list.findIndex(m => m.id === id);
+      if (idx >= 0) {
+        list.splice(idx, 1);
+      } else {
+        list.unshift({ id, title, poster_path: posterPath, addedAt: Date.now() });
+      }
+      saveMyList(list);
+      // Update all buttons for this movie
+      document.querySelectorAll(`[data-mylist-id="${id}"]`).forEach(btn => {
+        btn.classList.toggle('saved', isInMyList(id));
+        btn.title = isInMyList(id) ? 'Remove from My List' : 'Add to My List';
+        if (btn.classList.contains('btn-mylist')) {
+          btn.innerHTML = isInMyList(id) ? '✓ In My List' : '+ My List';
+        } else {
+          btn.textContent = isInMyList(id) ? '✓' : '+';
+        }
+      });
+    }
+    // Modal My List button builder
+    function buildMyListBtn(id, title, posterPath) {
+      const saved = isInMyList(id);
+      return `<button class="btn-mylist${saved?' saved':''}" data-mylist-id="${id}" title="${saved?'Remove from My List':'Add to My List'}"
+        onclick="toggleMyList(${id},'${title.replace(/'/g,"\\'")}','${posterPath||''}')">
+        ${saved ? '✓ In My List' : '+ My List'}
+      </button>`;
+    }
+
+    // ─────────────────────────────────────────────
+    // 4. CONTINUE WATCHING — localStorage progress
+    // ─────────────────────────────────────────────
+    function getCWList() {
+      try { return JSON.parse(localStorage.getItem('cinesearch_cw') || '[]'); } catch { return []; }
+    }
+    function saveCWList(list) {
+      try { localStorage.setItem('cinesearch_cw', JSON.stringify(list.slice(0,20))); } catch {}
+    }
+    function addToCW(id, title, posterPath) {
+      let list = getCWList();
+      const existing = list.findIndex(m => m.id === id);
+      const entry = { id, title, poster_path: posterPath, watchedAt: Date.now(), progress: Math.floor(Math.random()*60+10) };
+      if (existing >= 0) list.splice(existing, 1);
+      list.unshift(entry);
+      saveCWList(list);
+    }
+    function removeCW(id) {
+      saveCWList(getCWList().filter(m => m.id !== id));
+      renderCWRow();
+    }
+    function renderCWRow() {
+      const list = getCWList();
+      const sec = document.getElementById('cw-section');
+      if (!sec) return;
+      if (!list.length) { sec.style.display = 'none'; return; }
+      sec.style.display = '';
+      const cards = list.map(m => {
+        const img = m.poster_path
+          ? `<img src="${P}${m.poster_path}" alt="" loading="lazy"/>`
+          : `<div style="width:120px;height:180px;background:#222;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:28px">🎬</div>`;
+        return `
+          <div class="cw-card" onclick="openM(${m.id})" title="${m.title}">
+            ${img}
+            <div class="cw-progress-wrap"><div class="cw-progress-bar" style="width:${m.progress||30}%"></div></div>
+            <button class="cw-remove-btn" onclick="event.stopPropagation();removeCW(${m.id})" title="Remove">✕</button>
+            <div class="cw-card-title">${m.title}</div>
+          </div>`;
+      }).join('');
+      sec.innerHTML = `
+        <div class="cw-row-label">
+          Continue <em>Watching</em>
+          <button class="cw-clear" onclick="localStorage.removeItem('cinesearch_cw');renderCWRow()">Clear all</button>
+        </div>
+        <div class="cw-row">${cards}</div>`;
+    }
+
+    // ─────────────────────────────────────────────
+    // 5. BECAUSE YOU WATCHED — recommendation row
+    // ─────────────────────────────────────────────
+    let lastWatchedMovie = null;
+    try { lastWatchedMovie = JSON.parse(localStorage.getItem('cinesearch_last') || 'null'); } catch {}
+
+    function setLastWatched(id, title, posterPath) {
+      lastWatchedMovie = { id, title, poster_path: posterPath };
+      try { localStorage.setItem('cinesearch_last', JSON.stringify(lastWatchedMovie)); } catch {}
+    }
+
+    async function renderBYWRow() {
+      const sec = document.getElementById('byw-section');
+      if (!sec || !lastWatchedMovie) return;
+      sec.innerHTML = `
+        <div class="cw-row-label">Because you watched <em>${lastWatchedMovie.title}</em></div>
+        <div class="cw-row skeleton-row">${skeletonRow(8)}</div>`;
+      sec.style.display = '';
+      try {
+        const r = await fetch(`${B}/movie/${lastWatchedMovie.id}/similar?api_key=${K}&language=en-US`);
+        const d = await r.json();
+        const movies = (d.results || []).filter(m => m.poster_path).slice(0, 15);
+        if (!movies.length) { sec.style.display = 'none'; return; }
+        const cards = movies.map(m => {
+          const rc = ratingClass(m.vote_average);
+          return `
+            <div class="cw-card" onclick="openM(${m.id})" title="${m.title}">
+              <img src="${P}${m.poster_path}" alt="" loading="lazy"/>
+              <div class="cw-card-title">${m.title}</div>
+            </div>`;
+        }).join('');
+        sec.innerHTML = `
+          <div class="cw-row-label">Because you watched <em>${lastWatchedMovie.title}</em></div>
+          <div class="cw-row">${cards}</div>`;
+      } catch { sec.style.display = 'none'; }
+    }
+
+    // ─────────────────────────────────────────────
+    // 6. AUTOCOMPLETE SEARCH SUGGESTIONS
+    // ─────────────────────────────────────────────
+    let acDebounce = null;
+    function showAutocomplete(results) {
+      const box = document.getElementById('autocompleteBox');
+      if (!box) return;
+      if (!results.length) { box.style.display = 'none'; return; }
+      box.style.display = '';
+      box.innerHTML = results.slice(0, 8).map(m => {
+        const year = m.release_date ? m.release_date.slice(0,4) : '';
+        const rat  = m.vote_average ? m.vote_average.toFixed(1) : '';
+        const rc   = ratingClass(m.vote_average);
+        const thumb = m.poster_path
+          ? `<img class="autocomplete-thumb" src="${SM}${m.poster_path}" alt="" loading="lazy"/>`
+          : `<div class="autocomplete-thumb-ph">🎬</div>`;
+        return `
+          <div class="autocomplete-item" onclick="hideAutocomplete();${m._type === 'tv' ? `openTV(${m.id})` : `openM(${m.id})`}">
+            ${thumb}
+            <div class="autocomplete-info">
+              <div class="autocomplete-title">${m.title}</div>
+              <div class="autocomplete-meta">${year}${rat ? ` &nbsp;·&nbsp; <span class="${rc}">★ ${rat}</span>` : ''}${m._type === 'tv' ? ' &nbsp;·&nbsp; <span style="color:var(--red);font-size:9px;font-weight:700;">TV</span>' : ''}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+    function hideAutocomplete() {
+      const box = document.getElementById('autocompleteBox');
+      if (box) box.style.display = 'none';
+    }
+    async function fetchAutocomplete(query) {
+      try {
+        const [movieRes, tvRes] = await Promise.all([
+          fetch(`${B}/search/movie?api_key=${K}&query=${encodeURIComponent(query)}&language=en-US&page=1`).then(r=>r.json()),
+          fetch(`${B}/search/tv?api_key=${K}&query=${encodeURIComponent(query)}&language=en-US&page=1`).then(r=>r.json()),
+        ]);
+        const movies = (movieRes.results || []).map(m => ({ ...m, _type: 'movie' }));
+        const shows  = (tvRes.results  || []).map(s => ({ ...s, _type: 'tv', title: s.name || s.original_name, release_date: s.first_air_date }));
+        const combined = [...movies, ...shows].sort((a,b) => (b.popularity||0)-(a.popularity||0));
+        showAutocomplete(combined);
+      } catch { hideAutocomplete(); }
+    }
+
+    // ─────────────────────────────────────────────
+    // 7. RIPPLE CLICK EFFECT — DISABLED (caused blue tap flash on mobile)
+    // ─────────────────────────────────────────────
+    function addRipple(e, el) {
+      // Disabled: ripple caused blue/white overlay glitch on mobile tap
+    }
+
+    // ─────────────────────────────────────────────
+    // 8. HOOK INTO EXISTING openM — track CW + BYW
+    //    Wrap the original openM non-destructively
+    // ─────────────────────────────────────────────
+    const _origOpenM = openM;
+    window.openM = async function(id) {
+      await _origOpenM(id);
+      // After modal renders, grab title/poster from the rendered DOM
+      setTimeout(() => {
+        const titleEl = document.querySelector('#minner .m-title');
+        const posterEl = document.querySelector('#minner .m-poster');
+        const title = titleEl ? titleEl.textContent : '';
+        const poster = posterEl ? (posterEl.src.split('/w500').pop() || '') : '';
+        if (title) {
+          addToCW(id, title, poster);
+          setLastWatched(id, title, poster);
+        }
+        // Inject My List button into action-btns
+        const actionBtns = document.querySelector('#minner .action-btns');
+        if (actionBtns && !actionBtns.querySelector('.btn-mylist')) {
+          actionBtns.insertAdjacentHTML('beforeend', buildMyListBtn(id, title, poster));
+        }
+      }, 800);
+    };
+
+    // ─────────────────────────────────────────────
+    // 9. ENHANCE renderRow — color-coded ratings + My List btn
+    // ─────────────────────────────────────────────
+    const _origRenderRow = renderRow;
+    window.renderRow = function(rowId, movies) {
+      const row = document.getElementById(rowId);
+      if (!row) return;
+      // Show skeletons first
+      row.innerHTML = `<div class="skeleton-row">${skeletonRow(movies.filter(m=>m.poster_path||m.backdrop_path).length || 10)}</div>`;
+      // Then render real cards after a microtask so skeletons are visible
+      requestAnimationFrame(() => {
+        row.innerHTML = movies.filter(m => m.poster_path || m.backdrop_path).map(m => {
+          const year = m.release_date ? m.release_date.slice(0,4) : '—';
+          const rat = m.vote_average ? m.vote_average.toFixed(1) : '—';
+          const rc = ratingClass(m.vote_average);
+          const genres = (m.genre_ids || []).slice(0,2).map(id => GENRES[id]).filter(Boolean);
+          const saved = isInMyList(m.id);
+          const img = m.poster_path
+            ? `<img class="nf-poster" src="${P}${m.poster_path}" alt="" loading="lazy"/>`
+            : `<div class="nf-poster-fallback">🎬</div>`;
+          return `
+            <div class="nf-card" onclick="openM(${m.id})">
+              <div class="nf-card-inner">
+                ${img}
+                <div class="nf-card-info">
+                  <div class="nf-card-title">${m.title}</div>
+                  <div class="nf-card-row1">
+                    <button class="nf-play-btn" onclick="event.stopPropagation();openM(${m.id})"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>
+                    <button class="nf-info-btn" onclick="event.stopPropagation();openM(${m.id})">ⓘ</button>
+                    <button class="nf-mylist-btn${saved?' saved':''}" data-mylist-id="${m.id}"
+                      title="${saved?'Remove from My List':'Add to My List'}"
+                      onclick="event.stopPropagation();toggleMyList(${m.id},'${(m.title||'').replace(/'/g,"\\'")}','${m.poster_path||''}')">
+                      ${saved ? '✓' : '+'}
+                    </button>
+                    <span class="nf-rating ${rc}">★ ${rat}</span>
+                  </div>
+                  <div class="nf-tags">
+                    <span class="nf-tag">${year}</span>
+                    ${genres.map(g => `<span class="nf-tag">${g}</span>`).join('')}
+                  </div>
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+      });
+    };
+
+    // ─────────────────────────────────────────────
+    // 10. ENHANCE loadAllRows — inject CW + BYW sections
+    // ─────────────────────────────────────────────
+    // ── K-DRAMA: RENDER ROW ──
+    function renderKdramaRow(rowId, shows) {
+      const row = document.getElementById(rowId);
+      if (!row) return;
+      row.innerHTML = shows.filter(s => s.poster_path).map(s => {
+        const year = (s.first_air_date || '').slice(0, 4) || '—';
+        const rat  = s.vote_average ? s.vote_average.toFixed(1) : '—';
+        const rc   = ratingClass(s.vote_average);
+        return `
+          <div class="nf-card" onclick="openTV(${s.id})">
+            <div class="nf-card-inner">
+              <img class="nf-poster" src="${P}${s.poster_path}" alt="" loading="lazy"/>
+              <div class="nf-card-info">
+                <div class="nf-card-title">${s.name || s.original_name}</div>
+                <div class="nf-card-row1">
+                  <button class="nf-play-btn" onclick="event.stopPropagation();openTV(${s.id})"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>
+                  <button class="nf-info-btn" onclick="event.stopPropagation();openTV(${s.id})">ⓘ</button>
+                  <span class="nf-rating ${rc}">★ ${rat}</span>
+                </div>
+                <div class="nf-tags">
+                  <span class="nf-tag">${year}</span>
+                  <span class="nf-tag">K-Drama</span>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── K-DRAMA: WATCH TV EMBED ──
+    let tvWatchVisible = false;
+    let tvEmbedIndex   = 0;
+    let tvEmbedQueue   = [];
+
+    // ── K-DRAMA: BUILD TV EMBED QUEUE ──
+    function buildTVEmbedQueue(tmdbId, season, episode) {
+      // Ensure defaults
+      const s = parseInt(season) || 1;
+      const e = parseInt(episode) || 1;
+      
+      console.log(`[TV] Building queue - TMDB ID: ${tmdbId}, Season: ${s}, Episode: ${e}`);
+      
+      // Validate values
+      if (!tmdbId || tmdbId === 'undefined') {
+        console.error('[TV] Invalid TMDB ID:', tmdbId);
+        return [];
+      }
+      
+      const queue = [
+        { 
+          name: 'VIDSRC',
+          url: `https://vidsrc.to/embed/tv/${tmdbId}/${s}/${e}`,
+          provider: 'VIDSRC'
+        }
+      ];
+      
+      console.log('[TV] Queue built with', queue.length, 'source');
+      return queue;
+    }
+
+    function toggleWatchTV(btn) {
+      const wrap = document.getElementById('watchArea');
+      if (!wrap) return;
+      if (tvWatchVisible) {
+        wrap.innerHTML = ''; wrap.style.display = 'none';
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg> Watch K-Drama'; tvWatchVisible = false;
+        tvEmbedQueue = []; tvEmbedIndex = 0;
+      } else {
+        const id  = btn.dataset.id;
+        const ep  = parseInt(btn.dataset.ep  || '1') || 1;
+        const sea = parseInt(btn.dataset.sea || '1') || 1;
+        
+        console.log(`[TV] Opening watch - ID: ${id}, Season: ${sea}, Episode: ${ep}`);
+        
+        tvEmbedQueue = buildTVEmbedQueue(id, sea, ep);
+        tvEmbedIndex = 0;
+        loadTVEmbed(btn);
+      }
+    }
+
+    function loadTVEmbed(btn) {
+      const wrap = document.getElementById('watchArea');
+      const id   = btn.dataset.id;
+      
+      if (tvEmbedIndex >= tvEmbedQueue.length) {
+        console.log('[TV] Stream unavailable');
+        wrap.style.display = 'block';
+        wrap.innerHTML = `
+          <div class="no-trailer" style="margin-top:16px;text-align:center;padding:24px 16px;">
+            <div style="margin-bottom:12px;opacity:0.4"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 15s1.5-2 4-2 4 2 4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:6px;">This episode is currently unavailable.</div>
+            <div style="font-size:12px;color:var(--text-faint);">The episode may not be indexed yet by streaming providers.</div>
+          </div>`;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg> Watch K-Drama'; 
+        tvWatchVisible = false; 
+        return;
+      }
+      
+      const entry = tvEmbedQueue[tvEmbedIndex];
+      const sea   = parseInt(btn.dataset.sea) || 1;
+      const ep    = parseInt(btn.dataset.ep) || 1;
+      const totalEps = parseInt(btn.dataset.totaleps || '1');
+      const totalSeas = parseInt(btn.dataset.totalseas || '1');
+      const sourceNum = tvEmbedIndex + 1;
+      const totalSources = tvEmbedQueue.length;
+
+      console.log(`[TV] Loading source ${sourceNum}/${totalSources}: ${entry.name} (${entry.provider})`);
+      console.log(`[TV] URL: ${entry.url}`);
+
+      // Build prev/next ep controls
+      let epControls = '';
+      const curSea = parseInt(sea); 
+      const curEp = parseInt(ep);
+      const prevBtn = (curEp > 1 || curSea > 1)
+        ? `<button onclick="tvChangeEp(${curEp > 1 ? curEp-1 : 1}, ${curEp > 1 ? curSea : Math.max(curSea-1,1)})" style="background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:inherit;font-size:11px;padding:8px 14px;border-radius:4px;cursor:pointer;">◀ Prev Ep</button>`
+        : '';
+      const nextBtn = `<button onclick="tvChangeEp(${curEp+1}, ${curSea})" style="background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:inherit;font-size:11px;padding:8px 14px;border-radius:4px;cursor:pointer;">Next Ep ▶</button>`;
+
+      wrap.style.display = 'block';
+      wrap.innerHTML = `
+        <div class="trailer-wrap" style="margin-top:16px;position:relative;display:flex;align-items:center;justify-content:center;" id="tvPlayerContainer">
+          <div id="tvLoadingOverlay" style="text-align:center;z-index:10;">
+            <div class="embed-spinner"></div>
+          </div>
+          <iframe id="tvIframe" src="${entry.url}" allowfullscreen allow="autoplay; fullscreen; encrypted-media; accelerometer; gyroscope; picture-in-picture" referrerpolicy="no-referrer" style="width:100%;height:100%;border:none;border-radius:8px;position:absolute;inset:0;"></iframe>
+        </div>
+        <div style="text-align:center;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
+          <span style="font-size:11px;color:var(--text-faint);letter-spacing:0.06em;text-transform:uppercase;">S${String(curSea).padStart(2,'0')} · E${String(curEp).padStart(2,'0')} · VIDSRC</span>
+          ${prevBtn}
+          ${nextBtn}
+        </div>`;
+      
+      btn.innerHTML = '✕ Close Player'; 
+      tvWatchVisible = true;
+
+      // Wait for iframe to load
+      setTimeout(() => {
+        const iframe = document.getElementById('tvIframe');
+        if (!iframe) return;
+        
+        let loadedSuccessfully = false;
+        let iframeTimeout = null;
+
+        iframe.onload = () => {
+          console.log('[TV] Iframe loaded successfully');
+          loadedSuccessfully = true;
+          clearTimeout(iframeTimeout);
+          const overlay = document.getElementById('tvLoadingOverlay');
+          if (overlay) overlay.style.display = 'none';
+        };
+
+        iframe.onerror = () => {
+          console.error('[TV] Iframe error event');
+          clearTimeout(iframeTimeout);
+          if (!loadedSuccessfully) {
+            console.log('[TV] Source failed, trying next...');
+            tvNextSource();
+          }
+        };
+
+        // 10-second timeout for iframe load
+        iframeTimeout = setTimeout(() => {
+          if (!loadedSuccessfully) {
+            console.warn(`[TV] Source ${entry.name} timeout after 10s`);
+            tvNextSource();
+          }
+        }, 10000);
+      }, 100);
+    }
+
+    // tvNextSource removed — VIDSRC-only, no source switching needed
+
+    function tvChangeEp(ep, sea) {
+      const btn = document.getElementById('watchBtn');
+      if (!btn) return;
+      
+      // Ensure valid values with defaults
+      const newEp = parseInt(ep) || 1;
+      const newSea = parseInt(sea) || 1;
+      
+      console.log(`[TV] Changing episode: S${newSea}E${newEp}`);
+      
+      btn.dataset.ep  = newEp;
+      btn.dataset.sea = newSea;
+      tvEmbedIndex = 0;
+      tvEmbedQueue = buildTVEmbedQueue(btn.dataset.id, newSea, newEp);
+      loadTVEmbed(btn);
+    }
+
+    // ── K-DRAMA: OPEN MODAL ──
+    async function openTV(id) {
+      document.getElementById('minner').innerHTML = `<div class="loading-wrap" style="min-height:400px"><div class="nf-spinner"></div><div class="loading-text">Loading…</div></div>`;
+      document.getElementById('ov').classList.add('open');
+      document.body.style.overflow = 'hidden';
+      tvWatchVisible = false; tvEmbedIndex = 0; tvEmbedQueue = [];
+      try {
+        const [det, cred, vid, wtw] = await Promise.all([
+          fetch(`${B}/tv/${id}?api_key=${K}&language=en-US`).then(r=>r.json()),
+          fetch(`${B}/tv/${id}/credits?api_key=${K}&language=en-US`).then(r=>r.json()),
+          fetch(`${B}/tv/${id}/videos?api_key=${K}&language=en-US`).then(r=>r.json()),
+          fetch(`${B}/tv/${id}/watch/providers?api_key=${K}`).then(r=>r.json()),
+        ]);
+
+        const year     = (det.first_air_date || '').slice(0, 4) || '—';
+        const rat      = det.vote_average ? det.vote_average.toFixed(1) : '—';
+        const genres   = (det.genres || []).map(g => `<span class="g-pill">${g.name}</span>`).join('');
+        const seasons  = det.number_of_seasons  || 1;
+        const episodes = det.number_of_episodes || 1;
+
+        const backdrop = det.backdrop_path
+          ? `<div class="m-backdrop"><img src="${BK}${det.backdrop_path}" alt=""/></div>`
+          : `<div class="m-backdrop" style="height:180px;background:#111"></div>`;
+        const poster = det.poster_path
+          ? `<img class="m-poster" src="${P}${det.poster_path}" alt=""/>`
+          : `<div class="m-poster-ph">🎬</div>`;
+
+        const trailerKeys = getTrailer(vid);
+        const trailerBtn  = trailerKeys.length
+          ? `<button class="btn-trailer" id="trailerBtn" data-keys='${JSON.stringify(trailerKeys)}' onclick="handleTrailerBtn(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Watch Trailer</button>`
+          : `<button class="btn-trailer" style="opacity:0.4;cursor:default"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> No Trailer Available</button>`;
+
+        const wtwHtml = buildWTW(wtw);
+
+        const cast = (cred.cast || []).slice(0, 10).map(c => {
+          const av = c.profile_path
+            ? `<img class="cast-av" src="${SM}${c.profile_path}" alt=""/>`
+            : `<div class="cast-av-ph">👤</div>`;
+          return `<div class="cast-p">${av}<div class="cast-nm">${c.name}</div><div class="cast-ch">${c.character||''}</div></div>`;
+        }).join('');
+
+        trailerVisible = false; trailerIndex = 0;
+
+        document.getElementById('minner').innerHTML = `
+          ${backdrop}
+          <div class="m-body">
+            <div class="m-top">
+              <div class="m-poster-wrap">${poster}</div>
+              <div class="m-meta">
+                <div class="m-genres">${genres}</div>
+                <div class="m-title">${det.name || det.original_name}</div>
+                ${det.tagline ? `<div class="m-tagline">"${det.tagline}"</div>` : ''}
+                <div class="m-stats">
+                  <div class="stat"><div class="stat-l">Rating</div><div class="stat-v g">★ ${rat}</div></div>
+                  <div class="stat"><div class="stat-l">Year</div><div class="stat-v">${year}</div></div>
+                  <div class="stat"><div class="stat-l">Seasons</div><div class="stat-v">${seasons}</div></div>
+                  <div class="stat"><div class="stat-l">Episodes</div><div class="stat-v">${episodes}</div></div>
+                </div>
+                <div style="margin-top:20px" class="action-btns">
+                  ${trailerBtn}
+                  <button class="btn-watch" id="watchBtn"
+                    data-id="${id}"
+                    data-sea="1" data-ep="1"
+                    data-totalseas="${seasons}"
+                    data-totaleps="${episodes}"
+                    onclick="toggleWatchTV(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg> Watch K-Drama</button>
+                </div>
+              </div>
+            </div>
+            <div id="trailerArea" style="display:none"></div>
+            <div id="watchArea"  style="display:none"></div>
+            <div class="divider"></div>
+            <div class="overview-l">Synopsis</div>
+            <div class="overview-t">${det.overview || 'No synopsis available.'}</div>
+            <div class="wtw-section">
+              <div class="divider"></div>
+              <div class="wtw-title">Where to Watch</div>
+              <div class="wtw-grid">${wtwHtml}</div>
+            </div>
+            ${cast ? `<div class="cast-sec"><div class="divider"></div><div class="cast-l">Cast</div><div class="cast-row">${cast}</div></div>` : ''}
+          </div>`;
+
+        document.getElementById('modal').scrollTop = 0;
+      } catch {
+        document.getElementById('minner').innerHTML = `<div class="empty-wrap"><div class="empty-ico">⚠️</div><div class="empty-ttl">Failed to load</div></div>`;
+      }
+    }
+
+    // ── MIXED ROW RENDERER (movies + K-dramas combined) ──
+    function renderMixedRow(rowId, movies, shows) {
+      const row = document.getElementById(rowId);
+      if (!row) return;
+
+      const movieCards = movies.filter(m => m.poster_path).map(m => {
+        const year = m.release_date ? m.release_date.slice(0,4) : '—';
+        const rat  = m.vote_average ? m.vote_average.toFixed(1) : '—';
+        const rc   = ratingClass(m.vote_average);
+        const saved = isInMyList(m.id);
+        return `
+          <div class="nf-card" onclick="openM(${m.id})">
+            <div class="nf-card-inner">
+              <img class="nf-poster" src="${P}${m.poster_path}" alt="" loading="lazy"/>
+              <div class="nf-card-info">
+                <div class="nf-card-title">${m.title}</div>
+                <div class="nf-card-row1">
+                  <button class="nf-play-btn" onclick="event.stopPropagation();openM(${m.id})"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>
+                  <button class="nf-info-btn" onclick="event.stopPropagation();openM(${m.id})">ⓘ</button>
+                  <button class="nf-mylist-btn${saved?' saved':''}" data-mylist-id="${m.id}"
+                    title="${saved?'Remove from My List':'Add to My List'}"
+                    onclick="event.stopPropagation();toggleMyList(${m.id},'${(m.title||'').replace(/'/g,"\\'")}','${m.poster_path||''}')">
+                    ${saved ? '✓' : '+'}
+                  </button>
+                  <span class="nf-rating ${rc}">★ ${rat}</span>
+                </div>
+                <div class="nf-tags">
+                  <span class="nf-tag">${year}</span>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      });
+
+      const showCards = shows.filter(s => s.poster_path).map(s => {
+        const year = (s.first_air_date || '').slice(0,4) || '—';
+        const rat  = s.vote_average ? s.vote_average.toFixed(1) : '—';
+        const rc   = ratingClass(s.vote_average);
+        return `
+          <div class="nf-card" onclick="openTV(${s.id})">
+            <div class="nf-card-inner">
+              <img class="nf-poster" src="${P}${s.poster_path}" alt="" loading="lazy"/>
+              <div class="nf-card-info">
+                <div class="nf-card-title">${s.name || s.original_name}</div>
+                <div class="nf-card-row1">
+                  <button class="nf-play-btn" onclick="event.stopPropagation();openTV(${s.id})"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>
+                  <button class="nf-info-btn" onclick="event.stopPropagation();openTV(${s.id})">ⓘ</button>
+                  <span class="nf-rating ${rc}">★ ${rat}</span>
+                </div>
+                <div class="nf-tags">
+                  <span class="nf-tag">${year}</span>
+                  <span class="nf-tag" style="color:var(--red)">K-Drama</span>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      });
+
+      // Shuffle movies and dramas together
+      const all = [...movieCards, ...showCards];
+      for (let i = all.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [all[i], all[j]] = [all[j], all[i]];
+      }
+      row.innerHTML = all.join('');
+    }
+
+    const _origLoadAllRows = loadAllRows;
+    window.loadAllRows = async function() {
+      showLoading();
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const [
+          trendR1, trendR2, trendR3,
+          topR, upR,
+          kdTrendR1, kdTrendR2,
+          kdTopR1, kdTopR2
+        ] = await Promise.all([
+          fetch(`${B}/trending/movie/week?api_key=${K}&page=1`).then(r=>r.json()),
+          fetch(`${B}/trending/movie/week?api_key=${K}&page=2`).then(r=>r.json()),
+          fetch(`${B}/trending/movie/week?api_key=${K}&page=3`).then(r=>r.json()),
+          fetch(`${B}/movie/top_rated?api_key=${K}&language=en-US`).then(r=>r.json()),
+          fetch(`${B}/discover/movie?api_key=${K}&language=en-US&sort_by=popularity.desc&primary_release_date.gte=2026-01-01&primary_release_date.lte=2026-12-31&page=1`).then(r=>r.json()),
+          fetch(`${B}/discover/tv?api_key=${K}&language=en-US&with_origin_country=KR&with_genres=18&sort_by=first_air_date.desc&first_air_date.lte=${today}&vote_count.gte=5&page=1`).then(r=>r.json()),
+          fetch(`${B}/discover/tv?api_key=${K}&language=en-US&with_origin_country=KR&with_genres=18&sort_by=first_air_date.desc&first_air_date.lte=${today}&vote_count.gte=5&page=2`).then(r=>r.json()),
+          fetch(`${B}/discover/tv?api_key=${K}&language=en-US&with_origin_country=KR&with_genres=18&sort_by=vote_average.desc&vote_count.gte=200&page=1`).then(r=>r.json()),
+          fetch(`${B}/discover/tv?api_key=${K}&language=en-US&with_origin_country=KR&with_genres=18&sort_by=vote_average.desc&vote_count.gte=200&page=2`).then(r=>r.json()),
+        ]);
+
+        const trending = [
+          ...(trendR1.results || []),
+          ...(trendR2.results || []),
+          ...(trendR3.results || []),
+        ].filter(m => m.poster_path);
+
+        const toprated = (topR.results || []);
+        const upcoming = (upR.results || []).filter(m => m.release_date && m.release_date.startsWith('2026'));
+
+        const kdTrend = [
+          ...(kdTrendR1.results || []),
+          ...(kdTrendR2.results || []),
+        ].filter(s => s.poster_path);
+
+        const kdTop = [
+          ...(kdTopR1.results || []),
+          ...(kdTopR2.results || []),
+        ].filter(s => s.poster_path);
+
+        setHero(trending);
+        showGenreBar(trending);
+
+        document.getElementById('app').innerHTML = `
+          <div id="genreBarInline"></div>
+          <div class="row-section" style="animation-delay:0s">
+            <div class="row-label">Trending <em>This Week</em></div>
+            <div class="movie-row-outer"><div class="movie-row" id="row-trending"></div></div>
+          </div>
+          <div class="row-section" style="animation-delay:0.1s">
+            <div class="row-label">Top <em>Rated</em></div>
+            <div class="movie-row-outer"><div class="movie-row" id="row-toprated"></div></div>
+          </div>
+          <div class="row-section" style="animation-delay:0.2s">
+            <div class="row-label">Coming <em>Soon</em></div>
+            <div class="movie-row-outer"><div class="movie-row" id="row-upcoming"></div></div>
+          </div>
+          <div class="row-section" style="animation-delay:0.3s">
+            <div class="row-label">K-Drama <em>New Releases</em></div>
+            <div class="movie-row-outer"><div class="movie-row" id="row-kd-trend"></div></div>
+          </div>
+          <div class="row-section" style="animation-delay:0.4s">
+            <div class="row-label">K-Drama <em>Top Rated</em></div>
+            <div class="movie-row-outer"><div class="movie-row" id="row-kd-top"></div></div>
+          </div>`;
+
+        renderRow('row-trending', trending);
+        renderRow('row-toprated', toprated);
+        renderRow('row-upcoming', upcoming);
+        renderKdramaRow('row-kd-trend', kdTrend);
+        renderKdramaRow('row-kd-top',   kdTop);
+      } catch { showError(); }
+    };
+
+    // 11. Autocomplete removed — search goes directly to results grid
+
+    // ─────────────────────────────────────────────
+    // 12. ENHANCE search results — color-coded rating badges
+    // ─────────────────────────────────────────────
+    const _origRenderSearchGrid = renderSearchGrid;
+    window.renderSearchGrid = function(movies, query) {
+      if (!movies.length) {
+        document.getElementById('app').innerHTML = `<div class="empty-wrap" style="padding-top:120px"><div class="empty-ico">🎬</div><div class="empty-ttl">No results for "${query}"</div><div class="empty-sub">Try a different title or keyword.</div></div>`;
+        return;
+      }
+      const cards = movies.map((m, i) => {
+        const year = m.release_date ? m.release_date.slice(0,4) : '—';
+        const rat = m.vote_average ? m.vote_average.toFixed(1) : '—';
+        const rc = ratingClass(m.vote_average);
+        const img = m.poster_path
+          ? `<img class="search-poster" src="${P}${m.poster_path}" alt="" loading="lazy"/>`
+          : `<div class="search-poster-ph">🎬</div>`;
+        const isTV = m._type === 'tv';
+        const clickFn = isTV ? `openTV(${m.id})` : `openM(${m.id})`;
+        const typeBadge = isTV ? `<div style="position:absolute;bottom:28px;right:6px;background:rgba(229,9,20,0.85);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:2px;letter-spacing:0.06em;">TV</div>` : '';
+        return `
+          <div class="search-card" onclick="${clickFn}" style="animation:fadeIn 0.3s ${Math.min(i,11)*0.04}s both">
+            ${img}
+            <div class="search-rating-badge ${rc}">★ ${rat}</div>
+            ${typeBadge}
+            <div class="search-card-overlay">
+              <div class="search-card-title">${m.title}</div>
+              <div class="search-card-year">${year}</div>
+            </div>
+          </div>`;
+      }).join('');
+      document.getElementById('app').innerHTML = `
+        <div class="search-results">
+          <div class="search-head">
+            <div class="search-head-title">Results for <em>"${query}"</em></div>
+            <div class="search-count">${movies.length} titles</div>
+          </div>
+          <div class="search-grid">${cards}</div>
+        </div>`;
+    };
+
+    // ─────────────────────────────────────────────
+    // 13. RIPPLE on movie cards + hero buttons
+    // ─────────────────────────────────────────────
+    document.addEventListener('click', e => {
+      const card = e.target.closest('.nf-card-inner, .hero-btn, .btn-trailer, .btn-watch');
+      if (card) addRipple(e, card);
+    });
+
+    // 14. My List nav link removed
+
+    /* ─────────────────────────────────────────────
+       15. SECURITY NOTE (API KEY)
+       ─────────────────────────────────────────────
+       The TMDB API key is currently embedded in frontend JS.
+       For a production app, the safer approach is:
+
+       Option A — Backend proxy (recommended):
+         Create a lightweight serverless function (Netlify Function,
+         Vercel Edge, Cloudflare Worker) that stores the key server-side
+         and proxies requests to TMDB. Your frontend calls your own
+         /api/tmdb?path=... endpoint instead of TMDB directly.
+
+       Option B — Restricted key + rate limiting:
+         In your TMDB account settings, restrict the key to only
+         your domain (cine-searchs.netlify.app). This won't hide
+         the key but limits its abuse potential.
+
+       For a portfolio project, Option B is fine and takes 1 minute.
+    ─────────────────────────────────────────────── */
+
+    // Trigger initial loadAllRows with new enhancements
+    loadAllRows();
+
+    // ── PWA: Register Service Worker ──
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => console.log('CineSearch SW registered:', reg.scope))
+          .catch(err => console.log('SW registration failed:', err));
+      });
+    }
+
+    // ── PWA: Install prompt ──
+    let deferredPrompt = null;
+    const installBanner = document.getElementById('installBanner');
+
+    // Show banner after 2s as fallback (works even without beforeinstallprompt)
+    setTimeout(() => {
+      if (installBanner && !window.matchMedia('(display-mode: standalone)').matches) {
+        installBanner.style.display = 'flex';
+      }
+    }, 2000);
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (installBanner) installBanner.style.display = 'flex';
+      const btn = document.getElementById('installBtn');
+      if (btn) btn.textContent = 'Install App';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.target.id === 'installBtn') {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then(() => {
+            deferredPrompt = null;
+            if (installBanner) installBanner.style.display = 'none';
+          });
+        } else {
+          alert('Para mag-install:\n\n1. I-tap ang \u22ee (3 dots) sa Chrome\n2. Piliin ang "Add to Home screen"\n3. I-tap ang "Add"');
+        }
+      }
+      if (e.target.id === 'dismissInstall') {
+        if (installBanner) installBanner.style.display = 'none';
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      if (installBanner) installBanner.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
